@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <title>Budget Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+
+
+.progress-container {
+  background-color: #e9ecef;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 20px;
+  margin-top: 5px;
+}
+
+.progress-bar {
+  height: 100%;
+  text-align: right;
+  padding-right: 8px;
+  color: white;
+  font-size: 0.8rem;
+  line-height: 20px;
+}
+
+.progress-ok {
+  background-color: #28a745;
+}
+
+.progress-over {
+  background-color: #dc3545;
+}
+
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 5px;
+    }
+    #status {
+      margin-top: 15px;
+      text-align: center;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+    .summary div {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .ok {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .over {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Daily Expense Tracker</h2>
+
+  <label for="category">Category</label>
+  <select id="category" required>
+    <option value="">-- Select Category --</option>
+    <option value="Makan">Makan</option>
+    <option value="Transport">Transport</option>
+    <option value="Grocery">Grocery</option>
+    <option value="Debt">Debt</option>
+    <option value="Savings">Savings</option>
+    <option value="Bills">Bills</option>
+    <option value="Charity">Charity</option>
+    <option value="Personal">Personal</option>
+    <option value="Laura">Laura</option>
+    <option value="Others">Others</option>
+  </select>
+
+  <label for="amount">Amount (RM)</label>
+  <input type="number" id="amount" placeholder="Contoh: 12.50" required>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" placeholder="Contoh: Lunch, belanja minyak" rows="3"></textarea>
+
+  <button onclick="submitExpense()">Submit</button>
+  <button onclick="getSummary()">Budget Summary</button>
+
+  <div id="status"></div>
+  <div class="summary" id="summary"></div>
+  <canvas id="budgetPieChart" width="400" height="400" style="margin-top: 30px;"></canvas>
+
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwNC5dlcV04NGwt0euWBZp-2tlNmPGoHeIYIDbkHPjdxyGr72A5ooRKD6ehKhrlpsHvGA/exec'; // 🔁 GANTI sini dengan actual URL script
+	let pieChartInstance = null; // untuk update/reuse chart
+
+    function submitExpense() {
+      const category = document.getElementById('category').value;
+      const amount = document.getElementById('amount').value;
+      const notes = document.getElementById('notes').value;
+
+      if (!category || !amount) {
+        document.getElementById('status').innerText = 'Please fill in category and amount.';
+        return;
+      }
+
+      fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+          category: category,
+          amount: amount,
+          notes: notes
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '✅ Saved!';
+        document.getElementById('category').value = '';
+        document.getElementById('amount').value = '';
+        document.getElementById('notes').value = '';
+      })
+      .catch(error => {
+        console.error('Error!', error.message);
+        document.getElementById('status').innerText = '❌ Error saving data.';
+      });
+    }
+
+  function getSummary() {
+  fetch(scriptURL)
+    .then(res => res.json())
+    .then(data => {
+      let html = '';
+      const labels = [];
+      const values = [];
+      const colors = [];
+
+  
+    data.forEach(item => {
+        const statusClass = item.balance >= 0 ? 'ok' : 'over';
+        html += `
+  <div class="${statusClass}">
+    <strong>${item.category}</strong><br>
+    Budget: RM${item.budget.toFixed(2)}<br>
+    Spent: RM${item.spent.toFixed(2)}<br>
+    Balance: RM${item.balance.toFixed(2)}<br>
+    <div class="progress-container">
+      <div class="progress-bar ${item.balance >= 0 ? 'progress-ok' : 'progress-over'}"
+           style="width: ${Math.min((item.spent / item.budget) * 100, 100)}%">
+        ${(item.spent / item.budget * 100).toFixed(0)}%
+      </div>
+    </div>
+  </div>
+`;
+
+
+        labels.push(item.category);
+        values.push(item.spent);
+        colors.push(item.balance < 0 ? '#dc3545' : '#17a2b8');
+      });
+
+      document.getElementById('summary').innerHTML = html;
+
+      // Render Pie Chart
+      const ctx = document.getElementById('budgetPieChart').getContext('2d');
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+      }
+      pieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Perbelanjaan (RM)',
+            data: values,
+            backgroundColor: colors
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            title: {
+              display: true,
+              text: 'Perbelanjaan Mengikut Kategori'
+            }
+          }
+        }
+      });
+
+    })
+    .catch(error => {
+      console.error('Error fetching summary', error);
+      document.getElementById('summary').innerText = '❌ Failed to load summary.';
+    });
+}
+
+
+  </script>
+
+</body>
+</html>
