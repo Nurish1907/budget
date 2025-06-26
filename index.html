@@ -113,6 +113,8 @@
 
   <button onclick="submitExpense()">Submit</button>
   <button onclick="getSummary()">Budget Summary</button>
+  <button onclick="getHistory()">History</button>
+
 
   <div id="status"></div>
   <div class="summary" id="summary"></div>
@@ -182,8 +184,10 @@
       </div>
     </div>
   </div>
+  
 `;
 
+<div id="history" style="margin-top: 20px; max-height: 300px; overflow-y: auto; background: white; padding: 10px; border-radius: 8px;"></div>
 
         labels.push(item.category);
         values.push(item.spent);
