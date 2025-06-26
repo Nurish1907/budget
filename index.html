@@ -1,32 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8" />
   <title>Budget Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#007BFF" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    .progress-container {
-      background-color: #e9ecef;
-      border-radius: 20px;
-      overflow: hidden;
-      height: 20px;
-      margin-top: 5px;
-    }
-    .progress-bar {
-      height: 100%;
-      text-align: right;
-      padding-right: 8px;
-      color: white;
-      font-size: 0.8rem;
-      line-height: 20px;
-    }
-    .progress-ok {
-      background-color: #28a745;
-    }
-    .progress-over {
-      background-color: #dc3545;
-    }
     body {
       font-family: sans-serif;
       padding: 20px;
@@ -34,6 +14,7 @@
     }
     h2 {
       text-align: center;
+      font-size: 1.8rem;
     }
     label {
       display: block;
@@ -44,6 +25,7 @@
       padding: 10px;
       font-size: 1rem;
       margin-top: 5px;
+      box-sizing: border-box;
     }
     button {
       margin-top: 20px;
@@ -82,6 +64,27 @@
       background-color: #f8d7da;
       color: #721c24;
     }
+    .progress-container {
+      background-color: #e9ecef;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 20px;
+      margin-top: 5px;
+    }
+    .progress-bar {
+      height: 100%;
+      text-align: right;
+      padding-right: 8px;
+      color: white;
+      font-size: 0.8rem;
+      line-height: 20px;
+    }
+    .progress-ok {
+      background-color: #28a745;
+    }
+    .progress-over {
+      background-color: #dc3545;
+    }
     #history {
       margin-top: 20px;
       max-height: 300px;
@@ -101,6 +104,23 @@
     }
     th {
       background-color: #f2f2f2;
+    }
+
+    /* ✅ Responsive Tweaks */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      h2 {
+        font-size: 1.4rem;
+      }
+      button {
+        font-size: 1rem;
+        padding: 10px;
+      }
+      input, select, textarea {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -139,44 +159,42 @@
   <div id="history"></div>
 
 <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbw46VR49gIfYY4K5emtEMefxRGA22V059xTUYYHWgCwwteUS9DyCIAt9yMk9hnUV1LrYQ/exec'; // Ganti dengan URL kau
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbw46VR49gIfYY4K5emtEMefxRGA22V059xTUYYHWgCwwteUS9DyCIAt9yMk9hnUV1LrYQ/exec';
 
   let pieChartInstance = null;
 
   function submitExpense() {
-  const category = document.getElementById('category').value;
-  const amount = document.getElementById('amount').value;
-  const notes = document.getElementById('notes').value;
+    const category = document.getElementById('category').value;
+    const amount = document.getElementById('amount').value;
+    const notes = document.getElementById('notes').value;
 
-  if (!category || !amount) {
-    document.getElementById('status').innerText = 'Please fill in category and amount.';
-    return;
+    if (!category || !amount) {
+      document.getElementById('status').innerText = 'Please fill in category and amount.';
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.append('category', category);
+    params.append('amount', amount);
+    params.append('notes', notes);
+
+    fetch(scriptURL, {
+      method: 'POST',
+      body: params,
+    })
+    .then(() => {
+      document.getElementById('status').innerText = '✅ Saved!';
+      document.getElementById('category').value = '';
+      document.getElementById('amount').value = '';
+      document.getElementById('notes').value = '';
+    })
+    .catch(error => {
+      console.error('Error!', error.message);
+      document.getElementById('status').innerText = '❌ Error saving data.';
+    });
   }
 
-  const params = new URLSearchParams();
-  params.append('category', category);
-  params.append('amount', amount);
-  params.append('notes', notes);
-
-  fetch(scriptURL, {
-    method: 'POST',
-    body: params,
-  })
-  .then(() => {
-    document.getElementById('status').innerText = '✅ Saved!';
-    document.getElementById('category').value = '';
-    document.getElementById('amount').value = '';
-    document.getElementById('notes').value = '';
-  })
-  .catch(error => {
-    console.error('Error!', error.message);
-    document.getElementById('status').innerText = '❌ Error saving data.';
-  });
-}
-
-
   function getSummary() {
-    console.log('getSummary called');
     fetch(scriptURL)
       .then(res => res.json())
       .then(data => {
@@ -208,11 +226,8 @@
 
         document.getElementById('summary').innerHTML = html;
 
-        // Render Pie Chart
         const ctx = document.getElementById('budgetPieChart').getContext('2d');
-        if (pieChartInstance) {
-          pieChartInstance.destroy();
-        }
+        if (pieChartInstance) pieChartInstance.destroy();
         pieChartInstance = new Chart(ctx, {
           type: 'pie',
           data: {
@@ -226,9 +241,7 @@
           options: {
             responsive: true,
             plugins: {
-              legend: {
-                position: 'bottom'
-              },
+              legend: { position: 'bottom' },
               title: {
                 display: true,
                 text: 'Perbelanjaan Mengikut Kategori'
@@ -244,7 +257,6 @@
   }
 
   function getHistory() {
-    console.log('getHistory called');
     fetch(scriptURL + '?action=history')
       .then(res => res.json())
       .then(data => {
