@@ -126,6 +126,7 @@
 	let pieChartInstance = null; // untuk update/reuse chart
 
     function submitExpense() {
+	console.log('submitExpense called');    
       const category = document.getElementById('category').value;
       const amount = document.getElementById('amount').value;
       const notes = document.getElementById('notes').value;
@@ -160,6 +161,7 @@
     }
 
   function getSummary() {
+	  console.log('getSummary called');
   fetch(scriptURL)
     .then(res => res.json())
     .then(data => {
@@ -195,6 +197,15 @@
       });
 
       document.getElementById('summary').innerHTML = html;
+
+	  function getHistory() {
+  fetch(scriptURL + '?action=history')
+    .then(res => res.json())
+    .then(data => {
+      if (!data || data.length === 0) {
+        document.getElementById('history').innerText = 'Tiada data history.';
+        return;
+      }
 
       // Render Pie Chart
       const ctx = document.getElementById('budgetPieChart').getContext('2d');
